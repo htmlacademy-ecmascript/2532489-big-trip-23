@@ -4,9 +4,11 @@
   "private": true,
   "description": "Проект «Большое путешествие» от HTML Academy",
   "browserslist": [
-    "Chrome >= 60",
-    "Opera >= 47",
-    "IE >= 11"
+    "last 2 versions",
+    "not dead",
+    "not ie <= 11",
+    "not op_mini all",
+    "not < 0.25%"
   ],
   "scripts": {
     "start": "webpack serve --mode development --open",

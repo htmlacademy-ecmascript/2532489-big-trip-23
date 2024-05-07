@@ -4,6 +4,7 @@ import DestinationItemView from "../view/destination-item-view";
 import OffersModel from "../model/offers-model";
 import SortListView from "../view/sort-list-view";
 import EditDestinationForm from "../view/edit-destination-form";
+import ListEmptyView from "../view/list-empty-view";
 import {render, replace} from "../framework/render";
 export default class ListPresenter {
   #headerContainer = null;
@@ -23,6 +24,19 @@ export default class ListPresenter {
     this.offers = [...this.#offersModel.offersList];
 
     render(this.#filtersWrapper, this.#headerContainer);
+
+    if(this.destinatonList.length > 0){
+      this.#renderDestinationsList();
+    }else{
+      this.#renderEmptyList();
+    }
+  }
+
+  #renderEmptyList(){
+    render(new ListEmptyView, this.#mainContainer);
+  }
+
+  #renderDestinationsList(){
     render(this.#destinationWrapper, this.#mainContainer);
     render(new SortListView(), this.#destinationWrapper.element);
 
@@ -32,11 +46,19 @@ export default class ListPresenter {
   }
 
   #renderDestinationsItem(point, offers){
+    const escKeyDownHandler = (e) => {
+      if(e.key === 'Escape'){
+        e.preventDefault();
+        replaceFormToCard();
+        document.removeEventListener('keydown', escKeyDownHandler);
+      }
+    }
     const destinationItem = new DestinationItemView({
       pointData: point,
       allOffers: offers,
       onEditForm: () => {
         replaceCardToForm();
+        document.addEventListener('keydown', escKeyDownHandler);
       }
     })
     const destinationItemEdited = new EditDestinationForm({
@@ -44,6 +66,7 @@ export default class ListPresenter {
       allOffers: offers,
       onSubmitForm: () => {
         replaceFormToCard();
+        document.removeEventListener('keydown', escKeyDownHandler);
       }
     })
 

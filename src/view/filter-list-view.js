@@ -1,4 +1,3 @@
-import {createElement} from "../render";
 import {filtersList} from "../mock/filters";
 import AbstractView from "../framework/view/abstract-view";
 

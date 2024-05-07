@@ -1,5 +1,4 @@
 import AbstractView from "../framework/view/abstract-view";
-
 const createDestinationList = () => {
   return `<ul class="trip-events__list"></ul>`
 }

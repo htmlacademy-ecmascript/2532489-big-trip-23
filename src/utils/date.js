@@ -1,7 +1,4 @@
 import dayjs from 'dayjs';
-export function getRandomArrayElement(items) {
-  return items[Math.floor(Math.random() * items.length)];
-}
 
 export function createPointDate(date){
   return date ? dayjs(date).format('MMM DD') : '';

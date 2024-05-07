@@ -4,34 +4,79 @@ import DestinationItemView from "../view/destination-item-view";
 import OffersModel from "../model/offers-model";
 import SortListView from "../view/sort-list-view";
 import EditDestinationForm from "../view/edit-destination-form";
-import {render} from "../render";
+import ListEmptyView from "../view/list-empty-view";
+import {render, replace} from "../framework/render";
 export default class ListPresenter {
-  filtersWrapper = new FilterListView();
-  destinationWrapper = new DestinationListView();
-  offersModel = new OffersModel();
+  #headerContainer = null;
+  #mainContainer = null;
+  #destinationModel = null;
+  #filtersWrapper = new FilterListView();
+  #destinationWrapper = new DestinationListView();
+  #offersModel = new OffersModel();
+
   constructor({headerContainer, mainContainer, destinationModel}) {
-    this.headerContainer = headerContainer;
-    this.mainContainer = mainContainer;
-    this.destinationModel = destinationModel;
+    this.#headerContainer = headerContainer;
+    this.#mainContainer = mainContainer;
+    this.#destinationModel = destinationModel;
   }
   init(){
-    this.destinatonList = [...this.destinationModel.getDestinationList()];
-    this.offers = [...this.offersModel.getOffersList()];
+    this.destinatonList = [...this.#destinationModel.destinationList];
+    this.offers = [...this.#offersModel.offersList];
 
-    render(this.filtersWrapper, this.headerContainer);
+    render(this.#filtersWrapper, this.#headerContainer);
 
-    render(this.destinationWrapper, this.mainContainer);
-    render(new SortListView(), this.destinationWrapper.getElement());
-    render(new EditDestinationForm({
-      formData: this.destinatonList[1],
-      allOffers: this.offers
-    }), this.destinationWrapper.getElement());
+    if(this.destinatonList.length > 0){
+      this.#renderDestinationsList();
+    }else{
+      this.#renderEmptyList();
+    }
+  }
+
+  #renderEmptyList(){
+    render(new ListEmptyView, this.#mainContainer);
+  }
+
+  #renderDestinationsList(){
+    render(this.#destinationWrapper, this.#mainContainer);
+    render(new SortListView(), this.#destinationWrapper.element);
 
     for(let i = 0; i < this.destinatonList.length; i++){
-      render(new DestinationItemView({
-        pointData: this.destinatonList[i],
-        allOffers: this.offers
-      }), this.destinationWrapper.getElement());
+      this.#renderDestinationsItem(this.destinatonList[i], this.offers)
     }
+  }
+
+  #renderDestinationsItem(point, offers){
+    const escKeyDownHandler = (e) => {
+      if(e.key === 'Escape'){
+        e.preventDefault();
+        replaceFormToCard();
+        document.removeEventListener('keydown', escKeyDownHandler);
+      }
+    }
+    const destinationItem = new DestinationItemView({
+      pointData: point,
+      allOffers: offers,
+      onEditForm: () => {
+        replaceCardToForm();
+        document.addEventListener('keydown', escKeyDownHandler);
+      }
+    })
+    const destinationItemEdited = new EditDestinationForm({
+      formData: point,
+      allOffers: offers,
+      onSubmitForm: () => {
+        replaceFormToCard();
+        document.removeEventListener('keydown', escKeyDownHandler);
+      }
+    })
+
+    function replaceCardToForm() {
+      replace(destinationItemEdited, destinationItem)
+    }
+    function replaceFormToCard() {
+      replace(destinationItem, destinationItemEdited)
+    }
+
+    render(destinationItem, this.#destinationWrapper.element);
   }
 }

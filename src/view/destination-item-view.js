@@ -4,13 +4,14 @@ import {
   createTimeFormat,
   createDurationPeriod
 } from "../utils";
+import AbstractView from "../framework/view/abstract-view";
 
 const createDestinationItem = (pointData, allOffers) => {
 
   const {
     type,
     finishPoint,
-    price,
+    base_price,
     startDate,
     startTime,
     endTime,
@@ -48,7 +49,7 @@ const createDestinationItem = (pointData, allOffers) => {
                   <p class="event__duration">${timePeriod}</p>
                 </div>
                 <p class="event__price">
-                  &euro;&nbsp;<span class="event__price-value">${price}</span>
+                  &euro;&nbsp;<span class="event__price-value">${base_price}</span>
                 </p>
                 <h4 class="visually-hidden">Offers:</h4>
 
@@ -69,23 +70,24 @@ const createDestinationItem = (pointData, allOffers) => {
             </li>`
 }
 
-export default class DestinationItemView {
-  constructor({pointData, allOffers}) {
-    this.pointData = pointData;
-    this.allOffers = allOffers;
+export default class DestinationItemView extends AbstractView {
+  #pointData;
+  #allOffers;
+  #handleEditClick;
+  constructor({pointData, allOffers, onEditForm}) {
+    super();
+    this.#pointData = pointData;
+    this.#allOffers = allOffers;
+    this.#handleEditClick = onEditForm;
+    this.element.querySelector('.event__rollup-btn')
+      .addEventListener('click', this.#clickEditHandler);
   }
-  getTemplate = () => {
-    return createDestinationItem(this.pointData, this.allOffers);
+  get template() {
+    return createDestinationItem(this.#pointData, this.#allOffers);
   }
 
-  getElement = () => {
-    if(!this.element){
-      this.element = createElement(this.getTemplate())
-    }
-    return this.element
-  }
-
-  removeElement = () => {
-    this.element = null;
+  #clickEditHandler = (e) => {
+    e.preventDefault();
+    this.#handleEditClick();
   }
 }

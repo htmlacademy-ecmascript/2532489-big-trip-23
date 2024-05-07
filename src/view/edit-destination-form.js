@@ -1,5 +1,6 @@
 import {createElement} from "../render";
 import {TYPES} from "../const";
+import AbstractView from "../framework/view/abstract-view";
 
 const DEFAULT_FORM = {
   description: '',
@@ -10,7 +11,7 @@ const DEFAULT_FORM = {
   startTime: '',
   endTime: '',
   timePeriod: '',
-  price: 0,
+  base_price: 0,
   isFavourite: false,
   pictures: [],
 }
@@ -63,7 +64,7 @@ const createEditForm = (formData, allOffers) => {
                             <span class="visually-hidden">Price</span>
                             &euro;
                           </label>
-                          <input class="event__input  event__input--price" id="event-price-1" type="text" name="event-price" value="${formData.price}">
+                          <input class="event__input  event__input--price" id="event-price-1" type="text" name="event-price" value="${formData.base_price}">
                         </div>
 
                         <button class="event__save-btn  btn  btn--blue" type="submit">Save</button>
@@ -97,23 +98,25 @@ const createEditForm = (formData, allOffers) => {
                 </form>
             </li>`
 }
-export default class EditDestinationForm {
-  constructor({formData = DEFAULT_FORM, allOffers}) {
-    this.formData = formData;
-    this.allOffers = allOffers;
+export default class EditDestinationForm extends AbstractView {
+  #formData;
+  #allOffers;
+  #onSubmitForm;
+
+  constructor({formData = DEFAULT_FORM, allOffers, onSubmitForm}) {
+    super();
+    this.#formData = formData;
+    this.#allOffers = allOffers;
+    this.#onSubmitForm = onSubmitForm;
+    this.element.querySelector('.event__rollup-btn')
+      .addEventListener('click', this.#clickSubmitHandler)
   }
-  getTemplate = () => {
-    return createEditForm(this.formData, this.allOffers);
+  get template(){
+    return createEditForm(this.#formData, this.#allOffers);
   }
 
-  getElement = () => {
-    if(!this.element){
-      this.element = createElement(this.getTemplate())
-    }
-    return this.element
-  }
-
-  removeElement = () => {
-    this.element = null;
+  #clickSubmitHandler = (e) => {
+    e.preventDefault();
+    this.#onSubmitForm();
   }
 }

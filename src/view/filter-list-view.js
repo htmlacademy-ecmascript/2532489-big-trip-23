@@ -1,5 +1,6 @@
 import {createElement} from "../render";
 import {filtersList} from "../mock/filters";
+import AbstractView from "../framework/view/abstract-view";
 
 const createFilterItem = filtersList.map(item => {
   return `<div class="trip-filters__filter">
@@ -12,19 +13,8 @@ const createFilterList = () => {
             ${createFilterItem.join('')}
           </form>`
 }
-export default class FilterListView {
-  getTemplate = () => {
+export default class FilterListView extends AbstractView{
+  get template () {
     return createFilterList();
-  }
-
-  getElement = () => {
-    if(!this.element){
-      this.element = createElement(this.getTemplate())
-    }
-    return this.element
-  }
-
-  removeElement = () => {
-    this.element = null;
   }
 }

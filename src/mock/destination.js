@@ -3,7 +3,7 @@ import {TYPES} from "../const";
 
 const randomStartDates = ['2024-05-09T23:30:56.845Z', '2024-05-07T06:30:56.845Z', '2024-05-08T23:30:56.845Z', '2024-05-10T10:55:56.845Z']
 
-const destinationList = [
+export const destinationList = [
   {
     id: '767678687',
     description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras aliquet varius magna, non porta ligula feugiat eget. Fusce tristique felis at fermentum pharetra. Aliquam id orci ut lectus varius viverra. Nullam nunc ex, convallis sed finibus eget, sollicitudin eget ante. Phasellus eros mauris, condimentum sed nibh vitae, sodales efficitur ipsum.',
@@ -53,7 +53,3 @@ const destinationList = [
     pictures: [],
   }
 ]
-
-export const getRandomDestination = () => {
-  return getRandomArrayElement(destinationList);
-}

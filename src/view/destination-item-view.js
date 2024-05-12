@@ -73,17 +73,26 @@ const createDestinationItem = (pointData, allOffers) => {
 export default class DestinationItemView extends AbstractView {
   #pointData;
   #allOffers;
+  #handleFavoriteClick;
   #handleEditClick;
-  constructor({pointData, allOffers, onEditForm}) {
+  constructor({pointData, allOffers, onFavoriteClick, onEditForm}) {
     super();
     this.#pointData = pointData;
     this.#allOffers = allOffers;
+    this.#handleFavoriteClick = onFavoriteClick;
     this.#handleEditClick = onEditForm;
+    this.element.querySelector('.event__favorite-btn')
+      .addEventListener('click', this.#clickFavoriteHandler);
     this.element.querySelector('.event__rollup-btn')
       .addEventListener('click', this.#clickEditHandler);
   }
   get template() {
     return createDestinationItem(this.#pointData, this.#allOffers);
+  }
+
+  #clickFavoriteHandler = (e) => {
+    e.preventDefault();
+    this.#handleFavoriteClick();
   }
 
   #clickEditHandler = (e) => {

@@ -1,9 +1,7 @@
-import {getRandomDestination} from "../mock/destination";
-
-const DESTINATION_COUNT = 4;
+import {destinationList} from "../mock/destination";
 
 export default class DestinationModel {
-  #destinationList = Array.from({length: DESTINATION_COUNT}, getRandomDestination);
+  #destinationList = [...destinationList]
 
   get destinationList(){
     return this.#destinationList;

@@ -60,6 +60,7 @@ export default class DestinationPresenter {
 
   resetView() {
     if (this.#mode !== Mode.DEFAULT) {
+      this.#destinationItemEdited.reset(this.#point);
       this.#replaceFormToCard();
     }
   }
@@ -93,8 +94,8 @@ export default class DestinationPresenter {
     this.#replaceCardToForm();
   }
 
-  #handleFormSubmit = () => {
-    // this.#handleDataChange(task);
+  #handleFormSubmit = (modifiedPoint) => {
+    this.#handleDataChange(modifiedPoint);
     this.#replaceFormToCard();
   };
 }

@@ -3,7 +3,7 @@ import {
   createTimeFormat,
   createDurationPeriod
 } from '../utils/date';
-import AbstractView from "../framework/view/abstract-view";
+import AbstractStatefulView from "../framework/view/abstract-stateful-view";
 
 const createDestinationItem = (pointData, allOffers) => {
 
@@ -70,7 +70,7 @@ const createDestinationItem = (pointData, allOffers) => {
             </li>`
 }
 
-export default class DestinationItemView extends AbstractView {
+export default class DestinationItemView extends AbstractStatefulView {
   #pointData;
   #allOffers;
   #handleFavoriteClick;

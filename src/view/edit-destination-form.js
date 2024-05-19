@@ -1,5 +1,6 @@
 import {TYPES} from "../const";
-import AbstractView from "../framework/view/abstract-view";
+import AbstractStatefulView from "../framework/view/abstract-stateful-view";
+import DestinationPresenter from "../presenter/destination-presenter";
 
 const DEFAULT_FORM = {
   description: '',
@@ -25,7 +26,9 @@ const renderTypeSelect = (type) => {
                       ${TYPES.map(type => {
                         return `<div class="event__type-item">
                                   <input id="event-type-${type}-1" class="event__type-input  visually-hidden" type="radio" name="event-type" value="${type}">
-                                  <label class="event__type-label  event__type-label--${type}" for="event-type-${type}-1">${type}</label>
+                                  <label class="event__type-label  event__type-label--${type}"
+                                         for="event-type-${type}-1"
+                                         data-current-type="${type}">${type}</label>
                                 </div>`
                       }).join('')}
                   </fieldset>
@@ -34,15 +37,15 @@ const renderTypeSelect = (type) => {
 }
 const createEditForm = (formData, allOffers) => {
 
-  const { type, destination, base_price } = formData;
-  const offersByType = allOffers.find(item => item.type === type);
+  const { currentType, destination, base_price, description } = formData;
+  const offersByType = allOffers.find(item => item.type === currentType);
 
   return `<li class="trip-events__item">
                 <form class="event event--edit" action="#" method="post">
                     <header class="event__header">
-                        ${renderTypeSelect(type)}
+                        ${renderTypeSelect(currentType)}
                         <div class="event__field-group  event__field-group--destination">
-                            <label class="event__label  event__type-output" for="event-destination-1">${type}</label>
+                            <label class="event__label  event__type-output" for="event-destination-1">${currentType}</label>
                             <input class="event__input  event__input--destination" id="event-destination-1" type="text" name="event-destination" value="${destination}" list="destination-list-1">
                             <datalist id="destination-list-1">
                               <option value="Amsterdam"></option>
@@ -67,7 +70,7 @@ const createEditForm = (formData, allOffers) => {
                           <input class="event__input  event__input--price" id="event-price-1" type="text" name="event-price" value="${base_price}">
                         </div>
 
-                        <button class="event__save-btn  btn  btn--blue" type="submit">Save</button>
+                        <button class="event__save-btn  btn  btn--blue" type="button">Save</button>
                         <button class="event__reset-btn" type="reset">Delete</button>
                         <button class="event__rollup-btn" type="button">
                           <span class="visually-hidden">Open event</span>
@@ -94,29 +97,80 @@ const createEditForm = (formData, allOffers) => {
                                 </div>`).join('')}
                         </div>
                         </section>
+
+                        <section class="event__section  event__section--destination">
+                          <h3 class="event__section-title  event__section-title--destination">Destination</h3>
+                          <p class="event__destination-description">${description}</p>
+
+                          <div class="event__photos-container">
+                            <div class="event__photos-tape">
+                              <img class="event__photo" src="img/photos/1.jpg" alt="Event photo">
+                              <img class="event__photo" src="img/photos/2.jpg" alt="Event photo">
+                              <img class="event__photo" src="img/photos/3.jpg" alt="Event photo">
+                              <img class="event__photo" src="img/photos/4.jpg" alt="Event photo">
+                              <img class="event__photo" src="img/photos/5.jpg" alt="Event photo">
+                            </div>
+                          </div>
+                        </section>
                     </section>
                 </form>
             </li>`
 }
-export default class EditDestinationForm extends AbstractView {
-  #formData;
+export default class EditDestinationForm extends AbstractStatefulView {
   #allOffers;
   #onSubmitForm;
-
   constructor({formData = DEFAULT_FORM, allOffers, onSubmitForm}) {
     super();
-    this.#formData = formData;
+    this._setState(EditDestinationForm.parseStoreToState(formData));
     this.#allOffers = allOffers;
     this.#onSubmitForm = onSubmitForm;
-    this.element.querySelector('.event__rollup-btn')
-      .addEventListener('click', this.#clickSubmitHandler)
+    this._restoreHandlers();
   }
-  get template(){
-    return createEditForm(this.#formData, this.#allOffers);
+
+  get template() {
+    return createEditForm(this._state, this.#allOffers);
+  }
+
+  reset(formData){
+    this.updateElement(EditDestinationForm.parseStoreToState(formData));
   }
 
   #clickSubmitHandler = (e) => {
     e.preventDefault();
-    this.#onSubmitForm();
+    this.#onSubmitForm(EditDestinationForm.parseStateToStore(this._state));
+  }
+
+  static parseStoreToState = (stateData) => {
+    return {
+      ...stateData,
+      currentType: stateData.type
+    }
+  }
+
+  static parseStateToStore = (state) => {
+    const store = {...state};
+    store.type = state.currentType;
+    delete store.currentType;
+
+    return store;
+  }
+
+  #setCurrentType = (e) => {
+    if (e.target.tagName !== 'LABEL') {
+      return;
+    }
+    let checkedType = e.target.dataset.currentType;
+
+    this.updateElement({
+      currentType: checkedType
+    });
+  }
+
+  _restoreHandlers = () => {
+    this.element.querySelector('.event__rollup-btn')
+      .addEventListener('click', this.#clickSubmitHandler);
+    this.element.querySelector('.event__save-btn')
+      .addEventListener('click', this.#clickSubmitHandler);
+    this.element.addEventListener('click', this.#setCurrentType);
   }
 }

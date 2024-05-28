@@ -1,5 +1,5 @@
 import FilterListView from "../view/filter-list-view";
-import DestinationListView from "../view/destination-list-view";
+import PointsListView from "../view/points-list-view";
 import OffersModel from "../model/offers-model";
 import SortListView from "../view/sort-list-view";
 import ListEmptyView from "../view/list-empty-view";
@@ -8,28 +8,32 @@ import DestinationPresenter from "./destination-presenter";
 import {updateItem} from "../utils/common";
 import {SortType} from "../const";
 import {sortByDay, sortByName, sortByPrice} from "../utils/sort";
+import DestinationsModel from "../model/destinations-model";
 export default class PagePresenter {
   #headerContainer = null;
   #mainContainer = null;
-  #destinationModel = null;
+  #pointsModel = null;
   #filtersWrapper = new FilterListView();
-  #destinationWrapper = new DestinationListView();
+  #destinationWrapper = new PointsListView();
   #offersModel = new OffersModel();
+  #destinationsModel = new DestinationsModel();
   #offers = [];
-  #destinatonList = [];
-  #destinationsCollection = new Map();
+  #pointsList = [];
+  #destinations = [];
+  #pointsCollection = new Map();
   #currentSortType = SortType.DAY;
 
-  constructor({headerContainer, mainContainer, destinationModel}) {
+  constructor({headerContainer, mainContainer, pointsModel}) {
     this.#headerContainer = headerContainer;
     this.#mainContainer = mainContainer;
-    this.#destinationModel = destinationModel;
+    this.#pointsModel = pointsModel;
   }
   init(){
-    this.#destinatonList = [...this.#destinationModel.destinationList].sort(sortByDay);
+    this.#pointsList = [...this.#pointsModel.pointsList].sort(sortByDay);
+    this.#destinations = [...this.#destinationsModel.destinationsList];
     this.#offers = [...this.#offersModel.offersList];
 
-    if(this.#destinatonList.length > 0){
+    if(this.#pointsList.length > 0){
       this.#renderPage();
     }else{
       this.#renderEmptyList();
@@ -56,28 +60,28 @@ export default class PagePresenter {
     }), this.#destinationWrapper.element);
   }
   #renderDestinationsList = () => {
-    this.#destinatonList.forEach(point => this.#renderDestinationsItem(point, this.#offers))
+    this.#pointsList.forEach(point => this.#renderDestinationsItem(point, this.#offers, this.#destinations))
   }
-  #renderDestinationsItem(point, offers){
+  #renderDestinationsItem(point, offers, destinations){
     const destinationPresenter = new DestinationPresenter({
       destinationWrapper: this.#destinationWrapper.element,
       onModeChange: this.#handleModeChange,
       onDataChange: this.#handleDestinationChange
     })
-    destinationPresenter.init(point, offers);
-    this.#destinationsCollection.set(point.id, destinationPresenter)
+    destinationPresenter.init(point, offers, destinations);
+    this.#pointsCollection.set(point.id, destinationPresenter)
   }
 
   #sortList = (sortType) => {
     switch (sortType){
       case SortType.DAY:
-        this.#destinatonList.sort(sortByDay);
+        this.#pointsList.sort(sortByDay);
         break;
       case SortType.EVENT:
-        this.#destinatonList.sort(sortByName);
+        this.#pointsList.sort(sortByName);
         break;
       case SortType.PRICE:
-        this.#destinatonList.sort(sortByPrice);
+        this.#pointsList.sort(sortByPrice);
         break;
     }
     this.#currentSortType = sortType;
@@ -93,16 +97,16 @@ export default class PagePresenter {
     this.#renderDestinationsList();
   }
   #handleModeChange = () => {
-    this.#destinationsCollection.forEach((point) => point.resetView());
+    this.#pointsCollection.forEach((point) => point.resetView());
   };
 
   #handleDestinationChange = (modifiedPoint) => {
-    this.#destinatonList = updateItem(this.#destinatonList, modifiedPoint);
-    this.#destinationsCollection.get(modifiedPoint.id).init(modifiedPoint, this.#offers);
+    this.#pointsList = updateItem(this.#pointsList, modifiedPoint);
+    this.#pointsCollection.get(modifiedPoint.id).init(modifiedPoint, this.#offers);
   }
 
   #clearDestinationsList() {
-    this.#destinationsCollection.forEach((point) => point.destroy());
-    this.#destinationsCollection.clear();
+    this.#pointsCollection.forEach((point) => point.destroy());
+    this.#pointsCollection.clear();
   }
 }

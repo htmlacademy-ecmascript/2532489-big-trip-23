@@ -1,20 +1,21 @@
 import {remove, render, replace} from "../framework/render";
-import DestinationItemView from "../view/destination-item-view";
-import EditDestinationForm from "../view/edit-destination-form";
+import PointItemView from "../view/point-item-view";
+import EditPointForm from "../view/edit-point-form";
 
 const Mode = {
   DEFAULT: 'DEFAULT',
   EDITING: 'EDITING',
 };
 export default class DestinationPresenter {
-  #destinationItem = null;
-  #destinationItemEdited = null;
+  #pointItem = null;
+  #pointItemEdited = null;
   #destinationWrapper = null;
   #handleDataChange = null;
   #handleModeChange = null;
 
   #point = null;
   #offers = null;
+  #destinations = null;
   #mode = Mode.DEFAULT;
   constructor({destinationWrapper, onModeChange, onDataChange}) {
     this.#destinationWrapper = destinationWrapper;
@@ -22,36 +23,38 @@ export default class DestinationPresenter {
     this.#handleDataChange = onDataChange;
   }
 
-  init(point, offers){
+  init(point, offers, destinations){
     this.#point = point;
+    this.#destinations = destinations;
     this.#offers = offers;
 
-    const prevTaskComponent = this.#destinationItem;
-    const prevTaskEditComponent = this.#destinationItemEdited;
+    const prevTaskComponent = this.#pointItem;
+    const prevTaskEditComponent = this.#pointItemEdited;
 
-    this.#destinationItem = new DestinationItemView({
+    this.#pointItem = new PointItemView({
       pointData: this.#point,
       allOffers: this.#offers,
       onFavoriteClick: this.#handleFavoriteClick,
       onEditForm: this.#handleEditClick
     })
 
-    this.#destinationItemEdited = new EditDestinationForm({
+    this.#pointItemEdited = new EditPointForm({
       formData: this.#point,
       allOffers: this.#offers,
+      allDestinations: this.#destinations,
       onSubmitForm: this.#handleFormSubmit
     })
 
     if (prevTaskComponent === null || prevTaskEditComponent === null){
-      render(this.#destinationItem, this.#destinationWrapper);
+      render(this.#pointItem, this.#destinationWrapper);
       return;
     }
 
     if(this.#mode === Mode.DEFAULT){
-      replace(this.#destinationItem, prevTaskComponent);
+      replace(this.#pointItem, prevTaskComponent);
     }
     if(this.#mode === Mode.EDITING){
-      replace(this.#destinationItemEdited, prevTaskEditComponent);
+      replace(this.#pointItemEdited, prevTaskEditComponent);
     }
 
     remove(prevTaskComponent);
@@ -60,13 +63,13 @@ export default class DestinationPresenter {
 
   resetView() {
     if (this.#mode !== Mode.DEFAULT) {
-      this.#destinationItemEdited.reset(this.#point);
+      this.#pointItemEdited.reset(this.#point);
       this.#replaceFormToCard();
     }
   }
   destroy(){
-    remove(this.#destinationItem);
-    remove(this.#destinationItemEdited);
+    remove(this.#pointItem);
+    remove(this.#pointItemEdited);
   }
 
   #handleFavoriteClick = () => {
@@ -74,13 +77,13 @@ export default class DestinationPresenter {
   };
 
   #replaceCardToForm() {
-    replace(this.#destinationItemEdited, this.#destinationItem);
+    replace(this.#pointItemEdited, this.#pointItem);
     document.addEventListener('keydown', this.#escKeyDownHandler);
     this.#handleModeChange();
     this.#mode = Mode.EDITING;
   }
   #replaceFormToCard() {
-    replace(this.#destinationItem, this.#destinationItemEdited);
+    replace(this.#pointItem, this.#pointItemEdited);
     document.removeEventListener('keydown', this.#escKeyDownHandler);
     this.#mode = Mode.DEFAULT;
   }

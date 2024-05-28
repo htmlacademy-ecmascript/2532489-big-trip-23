@@ -1,6 +1,5 @@
 import {TYPES} from "../const";
 import AbstractStatefulView from "../framework/view/abstract-stateful-view";
-import DestinationPresenter from "../presenter/destination-presenter";
 
 const DEFAULT_FORM = {
   description: '',
@@ -35,10 +34,12 @@ const renderTypeSelect = (type) => {
               </div>
           </div>`
 }
-const createEditForm = (formData, allOffers) => {
+const createEditForm = (formData, allOffers, allDestinations) => {
 
-  const { currentType, destination, base_price, description } = formData;
-  const offersByType = allOffers.find(item => item.type === currentType);
+  const { currentType, currentDestination, base_price } = formData;
+  const offersByType = allOffers && allOffers.find(item => item.type === currentType);
+  const destinationByName = allDestinations &&
+    allDestinations.find(item => item.name.toLowerCase() === currentDestination.toLowerCase());
 
   return `<li class="trip-events__item">
                 <form class="event event--edit" action="#" method="post">
@@ -46,11 +47,11 @@ const createEditForm = (formData, allOffers) => {
                         ${renderTypeSelect(currentType)}
                         <div class="event__field-group  event__field-group--destination">
                             <label class="event__label  event__type-output" for="event-destination-1">${currentType}</label>
-                            <input class="event__input  event__input--destination" id="event-destination-1" type="text" name="event-destination" value="${destination}" list="destination-list-1">
+                            <input class="event__input  event__input--destination" id="event-destination-1" type="text" name="event-destination" value="${destinationByName && destinationByName.name}" list="destination-list-1">
                             <datalist id="destination-list-1">
-                              <option value="Amsterdam"></option>
-                              <option value="Geneva"></option>
-                              <option value="Chamonix"></option>
+                              ${allDestinations.map(item => {
+                                return`<option value="${item.name}">${item.name}</option>`
+                              })}
                             </datalist>
                         </div>
 
@@ -81,7 +82,7 @@ const createEditForm = (formData, allOffers) => {
                         <section class="event__section  event__section--offers">
                         <h3 class="event__section-title  event__section-title--offers">Offers</h3>
                         <div class="event__available-offers">
-                            ${offersByType.offers.map(offer => `
+                            ${offersByType && offersByType.offers.map(offer => `
                                 <div class="event__offer-selector">
                                     <input class="event__offer-checkbox
                                             visually-hidden"
@@ -100,15 +101,14 @@ const createEditForm = (formData, allOffers) => {
 
                         <section class="event__section  event__section--destination">
                           <h3 class="event__section-title  event__section-title--destination">Destination</h3>
-                          <p class="event__destination-description">${description}</p>
+
+                          <p class="event__destination-description">${destinationByName && destinationByName.description}</p>
 
                           <div class="event__photos-container">
                             <div class="event__photos-tape">
-                              <img class="event__photo" src="img/photos/1.jpg" alt="Event photo">
-                              <img class="event__photo" src="img/photos/2.jpg" alt="Event photo">
-                              <img class="event__photo" src="img/photos/3.jpg" alt="Event photo">
-                              <img class="event__photo" src="img/photos/4.jpg" alt="Event photo">
-                              <img class="event__photo" src="img/photos/5.jpg" alt="Event photo">
+                               ${destinationByName && destinationByName.pictures.map(item => {
+                                 return `<img class="event__photo" src="${item.src}" alt="${item.description}">`
+                                })}
                             </div>
                           </div>
                         </section>
@@ -116,43 +116,54 @@ const createEditForm = (formData, allOffers) => {
                 </form>
             </li>`
 }
-export default class EditDestinationForm extends AbstractStatefulView {
+export default class EditPointForm extends AbstractStatefulView {
   #allOffers;
+  #allDestinations;
   #onSubmitForm;
-  constructor({formData = DEFAULT_FORM, allOffers, onSubmitForm}) {
+  constructor({formData = DEFAULT_FORM, allOffers, allDestinations, onSubmitForm}) {
     super();
-    this._setState(EditDestinationForm.parseStoreToState(formData));
+    this._setState(EditPointForm.parseStoreToState(formData));
     this.#allOffers = allOffers;
+    this.#allDestinations = allDestinations;
     this.#onSubmitForm = onSubmitForm;
     this._restoreHandlers();
   }
 
   get template() {
-    return createEditForm(this._state, this.#allOffers);
+    return createEditForm(this._state, this.#allOffers, this.#allDestinations);
   }
 
   reset(formData){
-    this.updateElement(EditDestinationForm.parseStoreToState(formData));
+    this.updateElement(EditPointForm.parseStoreToState(formData));
   }
 
   #clickSubmitHandler = (e) => {
     e.preventDefault();
-    this.#onSubmitForm(EditDestinationForm.parseStateToStore(this._state));
+    this.#onSubmitForm(EditPointForm.parseStateToStore(this._state));
   }
 
   static parseStoreToState = (stateData) => {
     return {
       ...stateData,
-      currentType: stateData.type
+      currentType: stateData.type,
+      currentDestination: stateData.destination
     }
   }
 
   static parseStateToStore = (state) => {
     const store = {...state};
     store.type = state.currentType;
+    store.destination = state.currentDestination;
     delete store.currentType;
+    delete  store.currentDestination;
 
     return store;
+  }
+
+  #setCurrentDestination = (e) => {
+    let checkedDestination = this.#allDestinations.find(item => item.name === e.target.value);
+
+    checkedDestination && this.updateElement({currentDestination: checkedDestination.name})
   }
 
   #setCurrentType = (e) => {
@@ -166,11 +177,13 @@ export default class EditDestinationForm extends AbstractStatefulView {
     });
   }
 
-  _restoreHandlers = () => {
+  _restoreHandlers() {
     this.element.querySelector('.event__rollup-btn')
       .addEventListener('click', this.#clickSubmitHandler);
     this.element.querySelector('.event__save-btn')
       .addEventListener('click', this.#clickSubmitHandler);
+    this.element.querySelector('.event__input--destination')
+      .addEventListener('input', this.#setCurrentDestination);
     this.element.addEventListener('click', this.#setCurrentType);
   }
 }

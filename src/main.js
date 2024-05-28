@@ -1,14 +1,14 @@
 import PagePresenter from "./presenter/page-presenter";
-import DestinationModel from "./model/destination-model";
+import PointsModel from "./model/points-model";
 
-const destinationModel = new DestinationModel();
+const pointsModel = new PointsModel();
 const siteBody = document.querySelector('.page-body')
 const siteMainElement = siteBody.querySelector('.trip-events')
 const siteHeaderElement = siteBody.querySelector('.trip-main')
 const listPresenter = new PagePresenter({
   headerContainer: siteHeaderElement,
   mainContainer: siteMainElement,
-  destinationModel
+  pointsModel
 });
 
 listPresenter.init();

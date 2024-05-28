@@ -70,7 +70,7 @@ const createDestinationItem = (pointData, allOffers) => {
             </li>`
 }
 
-export default class DestinationItemView extends AbstractStatefulView {
+export default class PointItemView extends AbstractStatefulView {
   #pointData;
   #allOffers;
   #handleFavoriteClick;

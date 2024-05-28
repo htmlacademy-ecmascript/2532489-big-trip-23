@@ -1,5 +1,5 @@
 import {TYPES} from "../const";
-import AbstractView from "../framework/view/abstract-view";
+import AbstractStatefulView from "../framework/view/abstract-stateful-view";
 
 const DEFAULT_FORM = {
   description: '',
@@ -25,29 +25,33 @@ const renderTypeSelect = (type) => {
                       ${TYPES.map(type => {
                         return `<div class="event__type-item">
                                   <input id="event-type-${type}-1" class="event__type-input  visually-hidden" type="radio" name="event-type" value="${type}">
-                                  <label class="event__type-label  event__type-label--${type}" for="event-type-${type}-1">${type}</label>
+                                  <label class="event__type-label  event__type-label--${type}"
+                                         for="event-type-${type}-1"
+                                         data-current-type="${type}">${type}</label>
                                 </div>`
                       }).join('')}
                   </fieldset>
               </div>
           </div>`
 }
-const createEditForm = (formData, allOffers) => {
+const createEditForm = (formData, allOffers, allDestinations) => {
 
-  const { type, destination, base_price } = formData;
-  const offersByType = allOffers.find(item => item.type === type);
+  const { currentType, currentDestination, base_price } = formData;
+  const offersByType = allOffers && allOffers.find(item => item.type === currentType);
+  const destinationByName = allDestinations &&
+    allDestinations.find(item => item.name.toLowerCase() === currentDestination.toLowerCase());
 
   return `<li class="trip-events__item">
                 <form class="event event--edit" action="#" method="post">
                     <header class="event__header">
-                        ${renderTypeSelect(type)}
+                        ${renderTypeSelect(currentType)}
                         <div class="event__field-group  event__field-group--destination">
-                            <label class="event__label  event__type-output" for="event-destination-1">${type}</label>
-                            <input class="event__input  event__input--destination" id="event-destination-1" type="text" name="event-destination" value="${destination}" list="destination-list-1">
+                            <label class="event__label  event__type-output" for="event-destination-1">${currentType}</label>
+                            <input class="event__input  event__input--destination" id="event-destination-1" type="text" name="event-destination" value="${destinationByName && destinationByName.name}" list="destination-list-1">
                             <datalist id="destination-list-1">
-                              <option value="Amsterdam"></option>
-                              <option value="Geneva"></option>
-                              <option value="Chamonix"></option>
+                              ${allDestinations.map(item => {
+                                return`<option value="${item.name}">${item.name}</option>`
+                              })}
                             </datalist>
                         </div>
 
@@ -67,7 +71,7 @@ const createEditForm = (formData, allOffers) => {
                           <input class="event__input  event__input--price" id="event-price-1" type="text" name="event-price" value="${base_price}">
                         </div>
 
-                        <button class="event__save-btn  btn  btn--blue" type="submit">Save</button>
+                        <button class="event__save-btn  btn  btn--blue" type="button">Save</button>
                         <button class="event__reset-btn" type="reset">Delete</button>
                         <button class="event__rollup-btn" type="button">
                           <span class="visually-hidden">Open event</span>
@@ -78,7 +82,7 @@ const createEditForm = (formData, allOffers) => {
                         <section class="event__section  event__section--offers">
                         <h3 class="event__section-title  event__section-title--offers">Offers</h3>
                         <div class="event__available-offers">
-                            ${offersByType.offers.map(offer => `
+                            ${offersByType && offersByType.offers.map(offer => `
                                 <div class="event__offer-selector">
                                     <input class="event__offer-checkbox
                                             visually-hidden"
@@ -94,29 +98,92 @@ const createEditForm = (formData, allOffers) => {
                                 </div>`).join('')}
                         </div>
                         </section>
+
+                        <section class="event__section  event__section--destination">
+                          <h3 class="event__section-title  event__section-title--destination">Destination</h3>
+
+                          <p class="event__destination-description">${destinationByName && destinationByName.description}</p>
+
+                          <div class="event__photos-container">
+                            <div class="event__photos-tape">
+                               ${destinationByName && destinationByName.pictures.map(item => {
+                                 return `<img class="event__photo" src="${item.src}" alt="${item.description}">`
+                                })}
+                            </div>
+                          </div>
+                        </section>
                     </section>
                 </form>
             </li>`
 }
-export default class EditDestinationForm extends AbstractView {
-  #formData;
+export default class EditPointForm extends AbstractStatefulView {
   #allOffers;
+  #allDestinations;
   #onSubmitForm;
-
-  constructor({formData = DEFAULT_FORM, allOffers, onSubmitForm}) {
+  constructor({formData = DEFAULT_FORM, allOffers, allDestinations, onSubmitForm}) {
     super();
-    this.#formData = formData;
+    this._setState(EditPointForm.parseStoreToState(formData));
     this.#allOffers = allOffers;
+    this.#allDestinations = allDestinations;
     this.#onSubmitForm = onSubmitForm;
-    this.element.querySelector('.event__rollup-btn')
-      .addEventListener('click', this.#clickSubmitHandler)
+    this._restoreHandlers();
   }
-  get template(){
-    return createEditForm(this.#formData, this.#allOffers);
+
+  get template() {
+    return createEditForm(this._state, this.#allOffers, this.#allDestinations);
+  }
+
+  reset(formData){
+    this.updateElement(EditPointForm.parseStoreToState(formData));
   }
 
   #clickSubmitHandler = (e) => {
     e.preventDefault();
-    this.#onSubmitForm();
+    this.#onSubmitForm(EditPointForm.parseStateToStore(this._state));
+  }
+
+  static parseStoreToState = (stateData) => {
+    return {
+      ...stateData,
+      currentType: stateData.type,
+      currentDestination: stateData.destination
+    }
+  }
+
+  static parseStateToStore = (state) => {
+    const store = {...state};
+    store.type = state.currentType;
+    store.destination = state.currentDestination;
+    delete store.currentType;
+    delete  store.currentDestination;
+
+    return store;
+  }
+
+  #setCurrentDestination = (e) => {
+    let checkedDestination = this.#allDestinations.find(item => item.name === e.target.value);
+
+    checkedDestination && this.updateElement({currentDestination: checkedDestination.name})
+  }
+
+  #setCurrentType = (e) => {
+    if (e.target.tagName !== 'LABEL') {
+      return;
+    }
+    let checkedType = e.target.dataset.currentType;
+
+    this.updateElement({
+      currentType: checkedType
+    });
+  }
+
+  _restoreHandlers() {
+    this.element.querySelector('.event__rollup-btn')
+      .addEventListener('click', this.#clickSubmitHandler);
+    this.element.querySelector('.event__save-btn')
+      .addEventListener('click', this.#clickSubmitHandler);
+    this.element.querySelector('.event__input--destination')
+      .addEventListener('input', this.#setCurrentDestination);
+    this.element.addEventListener('click', this.#setCurrentType);
   }
 }

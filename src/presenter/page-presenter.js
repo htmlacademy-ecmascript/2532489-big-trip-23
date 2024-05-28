@@ -102,7 +102,7 @@ export default class PagePresenter {
 
   #handleDestinationChange = (modifiedPoint) => {
     this.#pointsList = updateItem(this.#pointsList, modifiedPoint);
-    this.#pointsCollection.get(modifiedPoint.id).init(modifiedPoint, this.#offers);
+    this.#pointsCollection.get(modifiedPoint.id).init(modifiedPoint, this.#offers, this.#destinations);
   }
 
   #clearDestinationsList() {

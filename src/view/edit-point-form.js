@@ -1,5 +1,7 @@
 import {TYPES} from "../const";
 import AbstractStatefulView from "../framework/view/abstract-stateful-view";
+import flatpickr from "flatpickr";
+import 'flatpickr/dist/flatpickr.min.css';
 
 const DEFAULT_FORM = {
   description: '',
@@ -36,7 +38,7 @@ const renderTypeSelect = (type) => {
 }
 const createEditForm = (formData, allOffers, allDestinations) => {
 
-  const { currentType, currentDestination, base_price } = formData;
+  const { currentType, currentDestination, base_price, date_from, date_to } = formData;
   const offersByType = allOffers && allOffers.find(item => item.type === currentType);
   const destinationByName = allDestinations &&
     allDestinations.find(item => item.name.toLowerCase() === currentDestination.toLowerCase());
@@ -49,7 +51,7 @@ const createEditForm = (formData, allOffers, allDestinations) => {
                             <label class="event__label  event__type-output" for="event-destination-1">${currentType}</label>
                             <input class="event__input  event__input--destination" id="event-destination-1" type="text" name="event-destination" value="${destinationByName && destinationByName.name}" list="destination-list-1">
                             <datalist id="destination-list-1">
-                              ${allDestinations.map(item => {
+                              ${allDestinations && allDestinations.map(item => {
                                 return`<option value="${item.name}">${item.name}</option>`
                               })}
                             </datalist>
@@ -57,10 +59,18 @@ const createEditForm = (formData, allOffers, allDestinations) => {
 
                         <div class="event__field-group  event__field-group--time">
                           <label class="visually-hidden" for="event-start-time-1">From</label>
-                          <input class="event__input  event__input--time" id="event-start-time-1" type="text" name="event-start-time" value="18/03/19 12:25">
+                          <input class="event__input  event__input--time"
+                                 id="event-start-time-1"
+                                 type="text"
+                                 name="event-start-time"
+                                 value="${date_from}">
                           &mdash;
                           <label class="visually-hidden" for="event-end-time-1">To</label>
-                          <input class="event__input  event__input--time" id="event-end-time-1" type="text" name="event-end-time" value="18/03/19 13:35">
+                          <input class="event__input  event__input--time"
+                                 id="event-end-time-1"
+                                 type="text"
+                                 name="event-end-time"
+                                 value="${date_to}">
                         </div>
 
                         <div class="event__field-group  event__field-group--price">
@@ -120,6 +130,7 @@ export default class EditPointForm extends AbstractStatefulView {
   #allOffers;
   #allDestinations;
   #onSubmitForm;
+  #datepicker;
   constructor({formData = DEFAULT_FORM, allOffers, allDestinations, onSubmitForm}) {
     super();
     this._setState(EditPointForm.parseStoreToState(formData));
@@ -133,6 +144,14 @@ export default class EditPointForm extends AbstractStatefulView {
     return createEditForm(this._state, this.#allOffers, this.#allDestinations);
   }
 
+  removeElement() {
+    super.removeElement();
+    if(this.#datepicker) {
+      this.#datepicker.destroy();
+      this.#datepicker = null;
+    }
+  }
+
   reset(formData){
     this.updateElement(EditPointForm.parseStoreToState(formData));
   }
@@ -142,11 +161,44 @@ export default class EditPointForm extends AbstractStatefulView {
     this.#onSubmitForm(EditPointForm.parseStateToStore(this._state));
   }
 
+  #setStartDatepicker(){
+    this.#datepicker = flatpickr(
+      this.element.querySelector('#event-start-time-1'),
+      {
+        dateFormat: "d/m/Y H:i",
+        enableTime: true,
+        defaultDate: this._state.date_from,
+        onChange: () => this.#onChangeStartDate
+      }
+    )
+  }
+
+  #setEndDatepicker(){
+    this.#datepicker = flatpickr(
+      this.element.querySelector('#event-end-time-1'),
+      {
+        dateFormat: "d/m/Y H:i",
+        enableTime: true,
+        defaultDate: this._state.date_to,
+        onChange: () => this.#onChangeEndDate
+      }
+    )
+  }
+
+  #onChangeStartDate([date]){
+    this.updateElement({date_from: date})
+  }
+
+  #onChangeEndDate([date]){
+    this.updateElement({date_to: date, base_price: 777})
+  }
+
   static parseStoreToState = (stateData) => {
     return {
       ...stateData,
       currentType: stateData.type,
-      currentDestination: stateData.destination
+      currentDestination: stateData.destination,
+      new_date: stateData.date_to
     }
   }
 
@@ -154,15 +206,16 @@ export default class EditPointForm extends AbstractStatefulView {
     const store = {...state};
     store.type = state.currentType;
     store.destination = state.currentDestination;
+    store.date_from = state.date_from;
+    store.date_to = state.date_to;
     delete store.currentType;
-    delete  store.currentDestination;
+    delete store.currentDestination;
 
     return store;
   }
 
   #setCurrentDestination = (e) => {
     let checkedDestination = this.#allDestinations.find(item => item.name === e.target.value);
-
     checkedDestination && this.updateElement({currentDestination: checkedDestination.name})
   }
 
@@ -185,5 +238,8 @@ export default class EditPointForm extends AbstractStatefulView {
     this.element.querySelector('.event__input--destination')
       .addEventListener('input', this.#setCurrentDestination);
     this.element.addEventListener('click', this.#setCurrentType);
+
+    this.#setStartDatepicker();
+    this.#setEndDatepicker();
   }
 }

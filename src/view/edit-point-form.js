@@ -4,12 +4,12 @@ import flatpickr from "flatpickr";
 import 'flatpickr/dist/flatpickr.min.css';
 
 const DEFAULT_FORM = {
-  description: '',
   type: 'flight',
   offers: [],
-  destination: '',
-  date_from: '',
-  date_to: '',
+  destination: 'Seoul',
+  description: '',
+  date_from: new Date(),
+  date_to: new Date(),
   base_price: 0,
   is_favorite: false,
   pictures: [],
@@ -30,15 +30,14 @@ const renderTypeSelect = (type) => {
                                   <label class="event__type-label  event__type-label--${type}"
                                          for="event-type-${type}-1"
                                          data-current-type="${type}">${type}</label>
-                                </div>`
-                      }).join('')}
+                                </div>`}).join('')}
                   </fieldset>
               </div>
           </div>`
 }
-const createEditForm = (formData, allOffers, allDestinations) => {
+const createEditForm = (formData, allOffers, allDestinations, newForm) => {
 
-  const { currentType, currentDestination, base_price, date_from, date_to } = formData;
+  const { id, currentType, currentDestination, base_price, date_from, date_to } = formData;
   const offersByType = allOffers && allOffers.find(item => item.type === currentType);
   const destinationByName = allDestinations &&
     allDestinations.find(item => item.name.toLowerCase() === currentDestination.toLowerCase());
@@ -49,11 +48,16 @@ const createEditForm = (formData, allOffers, allDestinations) => {
                         ${renderTypeSelect(currentType)}
                         <div class="event__field-group  event__field-group--destination">
                             <label class="event__label  event__type-output" for="event-destination-1">${currentType}</label>
-                            <input class="event__input  event__input--destination" id="event-destination-1" type="text" name="event-destination" value="${destinationByName && destinationByName.name}" list="destination-list-1">
+                            <input class="event__input  event__input--destination"
+                                   id="event-destination-1"
+                                   type="text"
+                                   name="event-destination"
+                                   value="${destinationByName && destinationByName.name}"
+                                   list="destination-list-1">
                             <datalist id="destination-list-1">
                               ${allDestinations && allDestinations.map(item => {
-                                return`<option value="${item.name}">${item.name}</option>`
-                              })}
+                                      return`<option value="${item.name}">${item.name}</option>`
+                                  })}
                             </datalist>
                         </div>
 
@@ -78,35 +82,42 @@ const createEditForm = (formData, allOffers, allDestinations) => {
                             <span class="visually-hidden">Price</span>
                             &euro;
                           </label>
-                          <input class="event__input  event__input--price" id="event-price-1" type="text" name="event-price" value="${base_price}">
+                          <input class="event__input  event__input--price"
+                                 id="event-price-1"
+                                 type="text"
+                                 name="event-price"
+                                 value="${base_price}">
                         </div>
 
                         <button class="event__save-btn  btn  btn--blue" type="button">Save</button>
-                        <button class="event__reset-btn" type="reset">Delete</button>
-                        <button class="event__rollup-btn" type="button">
+                        <button class="event__reset-btn"
+                                type="button"
+                                data-current-id="${newForm ? '' : id}">${newForm ? 'Cancel' : 'Delete'}</button>
+                        <button class="${newForm ? 'visually-hidden' : 'event__rollup-btn'}" type="button">
                           <span class="visually-hidden">Open event</span>
                         </button>
                     </header>
 
                     <section class="event__details">
                         <section class="event__section  event__section--offers">
-                        <h3 class="event__section-title  event__section-title--offers">Offers</h3>
-                        <div class="event__available-offers">
-                            ${offersByType && offersByType.offers.map(offer => `
-                                <div class="event__offer-selector">
-                                    <input class="event__offer-checkbox
-                                            visually-hidden"
-                                            id="event-${offer.title}-1"
-                                            type="checkbox"
-                                            name="event-${offer.title}"
-                                            ${formData.offers.includes(offer.id) ? 'checked' : ''}>
-                                    <label class="event__offer-label" for="event-${offer.title}-1">
-                                      <span class="event__offer-title">${offer.title}</span>
-                                      &plus;&euro;&nbsp;
-                                      <span class="event__offer-price">${offer.price}</span>
-                                    </label>
-                                </div>`).join('')}
-                        </div>
+                          <h3 class="event__section-title  event__section-title--offers">Offers</h3>
+                          <div class="event__available-offers">
+                              ${offersByType && offersByType.offers.map(offer => `
+                                  <div class="event__offer-selector">
+                                      <input class="event__offer-checkbox
+                                              visually-hidden"
+                                              id="event-${offer.title}-1"
+                                              type="checkbox"
+                                              name="event-${offer.title}"
+                                              ${formData.offers.includes(offer.id) ? 'checked' : ''}>
+                                      <label class="event__offer-label" data-current-offer="${offer.id}"
+                                             for="event-${offer.title}-1">
+                                        <span class="event__offer-title" data-current-offer="${offer.id}">${offer.title}</span>
+                                        &plus;&euro;&nbsp;
+                                        <span class="event__offer-price">${offer.price}</span>
+                                      </label>
+                                  </div>`).join('')}
+                          </div>
                         </section>
 
                         <section class="event__section  event__section--destination">
@@ -117,8 +128,8 @@ const createEditForm = (formData, allOffers, allDestinations) => {
                           <div class="event__photos-container">
                             <div class="event__photos-tape">
                                ${destinationByName && destinationByName.pictures.map(item => {
-                                 return `<img class="event__photo" src="${item.src}" alt="${item.description}">`
-                                })}
+                                    return `<img class="event__photo" src="${item.src}" alt="${item.description}">`
+                                  })}
                             </div>
                           </div>
                         </section>
@@ -131,17 +142,24 @@ export default class EditPointForm extends AbstractStatefulView {
   #allDestinations;
   #onSubmitForm;
   #datepicker;
-  constructor({formData = DEFAULT_FORM, allOffers, allDestinations, onSubmitForm}) {
+  #rejectHandler;
+  #isNewForm;
+  #currentPrice;
+  #storePrice;
+  constructor({formData = DEFAULT_FORM, allOffers, allDestinations, onSubmitForm, onRejectForm, newForm}) {
     super();
     this._setState(EditPointForm.parseStoreToState(formData));
     this.#allOffers = allOffers;
     this.#allDestinations = allDestinations;
     this.#onSubmitForm = onSubmitForm;
+    this.#rejectHandler = onRejectForm;
+    this.#storePrice = formData.base_price;
+    this.#isNewForm = newForm;
     this._restoreHandlers();
   }
 
   get template() {
-    return createEditForm(this._state, this.#allOffers, this.#allDestinations);
+    return createEditForm(this._state, this.#allOffers, this.#allDestinations, this.#isNewForm);
   }
 
   removeElement() {
@@ -157,8 +175,12 @@ export default class EditPointForm extends AbstractStatefulView {
   }
 
   #clickSubmitHandler = (e) => {
+    let price = this.#currentPrice ? this.#currentPrice : this.#storePrice;
     e.preventDefault();
-    this.#onSubmitForm(EditPointForm.parseStateToStore(this._state));
+    this.#onSubmitForm(EditPointForm.parseStateToStore({
+      ...this._state,
+      base_price: price
+    }));
   }
 
   #setStartDatepicker(){
@@ -168,7 +190,7 @@ export default class EditPointForm extends AbstractStatefulView {
         dateFormat: "d/m/Y H:i",
         enableTime: true,
         defaultDate: this._state.date_from,
-        onChange: () => this.#onChangeStartDate
+        onChange: (d) => this.#onChangeStartDate(d)
       }
     )
   }
@@ -180,7 +202,7 @@ export default class EditPointForm extends AbstractStatefulView {
         dateFormat: "d/m/Y H:i",
         enableTime: true,
         defaultDate: this._state.date_to,
-        onChange: () => this.#onChangeEndDate
+        onChange: (d) => this.#onChangeEndDate(d)
       }
     )
   }
@@ -190,15 +212,16 @@ export default class EditPointForm extends AbstractStatefulView {
   }
 
   #onChangeEndDate([date]){
+    console.log(date)
     this.updateElement({date_to: date, base_price: 777})
   }
 
-  static parseStoreToState = (stateData) => {
+  static parseStoreToState = (storeData) => {
     return {
-      ...stateData,
-      currentType: stateData.type,
-      currentDestination: stateData.destination,
-      new_date: stateData.date_to
+      ...storeData,
+      currentType: storeData.type,
+      currentDestination: storeData.destination,
+      new_date: storeData.date_to
     }
   }
 
@@ -215,29 +238,69 @@ export default class EditPointForm extends AbstractStatefulView {
   }
 
   #setCurrentDestination = (e) => {
+    e.preventDefault();
     let checkedDestination = this.#allDestinations.find(item => item.name === e.target.value);
     checkedDestination && this.updateElement({currentDestination: checkedDestination.name})
   }
 
-  #setCurrentType = (e) => {
-    if (e.target.tagName !== 'LABEL') {
-      return;
+  #validateNumber = (e) => {
+    const idValidValue = e.target.value.replace(/[^0-9]/g, '').replace(/^0+/, '');;
+    e.target.value = idValidValue;
+  }
+
+  #setCurrentPrice = (e) => {
+    let isValidNumber = /^\d+$/.test(e.target.value);
+    if(isValidNumber){
+      this.#currentPrice = e.target.value;
     }
+  }
+
+  #setCurrentType = (e) => {
     let checkedType = e.target.dataset.currentType;
 
     this.updateElement({
-      currentType: checkedType
+      currentType: checkedType,
+      offers: []
     });
   }
 
+  #clickOfferOption = (e) => {
+    let checkedOffer = Number(e.target.dataset.currentOffer);
+    let idx = this._state.offers.findIndex(offer => offer === checkedOffer);
+    if(idx === -1){
+      this.updateElement({offers: [...this._state.offers, checkedOffer]});
+    }else{
+      let newOffers = [
+        ...this._state.offers.slice(0, idx),
+        ...this._state.offers.slice(idx + 1)
+      ];
+      this.updateElement({offers: [...newOffers]});
+    }
+  }
+
+  #clickRejectHandler = (e) => {
+    let currentFormId = e.target.dataset.currentId;
+
+    this.#rejectHandler(currentFormId)
+  }
+
   _restoreHandlers() {
-    this.element.querySelector('.event__rollup-btn')
-      .addEventListener('click', this.#clickSubmitHandler);
+    let el = !this.#isNewForm && this.element.querySelector('.event__rollup-btn');
+    el && el.addEventListener('click', this.#clickSubmitHandler);
     this.element.querySelector('.event__save-btn')
       .addEventListener('click', this.#clickSubmitHandler);
     this.element.querySelector('.event__input--destination')
       .addEventListener('input', this.#setCurrentDestination);
-    this.element.addEventListener('click', this.#setCurrentType);
+    this.element.querySelector('.event__input--price')
+      .addEventListener('input', this.#setCurrentPrice);
+    this.element.querySelector('.event__input--price')
+      .addEventListener('input', this.#validateNumber);
+    this.element.querySelector('.event__type-group')
+      .addEventListener('click', this.#setCurrentType);
+    this.element.querySelector('.event__available-offers')
+      .addEventListener('click', this.#clickOfferOption)
+    this.element.querySelector('.event__reset-btn')
+      .addEventListener('click', this.#clickRejectHandler)
 
     this.#setStartDatepicker();
     this.#setEndDatepicker();

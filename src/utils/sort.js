@@ -6,7 +6,7 @@ export const sortByDay = (a, b) => {
 }
 
 export const sortByPrice = (a, b) => {
-  return a.base_price - b.base_price;
+  return b.base_price - a.base_price;
 }
 
 export const sortByName = (a, b) => {

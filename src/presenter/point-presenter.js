@@ -1,12 +1,10 @@
 import {remove, render, replace} from "../framework/render";
 import PointItemView from "../view/point-item-view";
 import EditPointForm from "../view/edit-point-form";
+import {UserAction, UpdateType, PointMode} from "../const";
 
-const Mode = {
-  DEFAULT: 'DEFAULT',
-  EDITING: 'EDITING',
-};
-export default class DestinationPresenter {
+
+export default class PointPresenter {
   #pointItem = null;
   #pointItemEdited = null;
   #destinationWrapper = null;
@@ -16,7 +14,7 @@ export default class DestinationPresenter {
   #point = null;
   #offers = null;
   #destinations = null;
-  #mode = Mode.DEFAULT;
+  #mode = PointMode.DEFAULT;
   constructor({destinationWrapper, onModeChange, onDataChange}) {
     this.#destinationWrapper = destinationWrapper;
     this.#handleModeChange = onModeChange;
@@ -42,7 +40,9 @@ export default class DestinationPresenter {
       formData: this.#point,
       allOffers: this.#offers,
       allDestinations: this.#destinations,
-      onSubmitForm: this.#handleFormSubmit
+      onSubmitForm: this.#handleFormSubmit,
+      onRejectForm: this.#handlePointRemove,
+      newForm: false
     })
 
     if (prevTaskComponent === null || prevTaskEditComponent === null){
@@ -50,10 +50,10 @@ export default class DestinationPresenter {
       return;
     }
 
-    if(this.#mode === Mode.DEFAULT){
+    if(this.#mode === PointMode.DEFAULT){
       replace(this.#pointItem, prevTaskComponent);
     }
-    if(this.#mode === Mode.EDITING){
+    if(this.#mode === PointMode.EDITING){
       replace(this.#pointItemEdited, prevTaskEditComponent);
     }
 
@@ -62,7 +62,7 @@ export default class DestinationPresenter {
   }
 
   resetView() {
-    if (this.#mode !== Mode.DEFAULT) {
+    if (this.#mode !== PointMode.DEFAULT) {
       this.#pointItemEdited.reset(this.#point);
       this.#replaceFormToCard();
     }
@@ -73,19 +73,23 @@ export default class DestinationPresenter {
   }
 
   #handleFavoriteClick = () => {
-    this.#handleDataChange({...this.#point, is_favorite: !this.#point.is_favorite});
+    this.#handleDataChange(
+      UserAction.UPDATE_POINT,
+      UpdateType.PATCH,
+      {...this.#point, is_favorite: !this.#point.is_favorite},
+    );
   };
 
   #replaceCardToForm() {
     replace(this.#pointItemEdited, this.#pointItem);
     document.addEventListener('keydown', this.#escKeyDownHandler);
     this.#handleModeChange();
-    this.#mode = Mode.EDITING;
+    this.#mode = PointMode.EDITING;
   }
   #replaceFormToCard() {
     replace(this.#pointItem, this.#pointItemEdited);
     document.removeEventListener('keydown', this.#escKeyDownHandler);
-    this.#mode = Mode.DEFAULT;
+    this.#mode = PointMode.DEFAULT;
   }
   #escKeyDownHandler = (e) => {
     if(e.key === 'Escape'){
@@ -98,7 +102,19 @@ export default class DestinationPresenter {
   }
 
   #handleFormSubmit = (modifiedPoint) => {
-    this.#handleDataChange(modifiedPoint);
+    this.#handleDataChange(
+      UserAction.UPDATE_POINT,
+      UpdateType.PATCH,
+      modifiedPoint
+    );
     this.#replaceFormToCard();
+  };
+
+  #handlePointRemove = (pointId) => {
+    this.#handleDataChange(
+      UserAction.DELETE_POINT,
+      UpdateType.MINOR,
+      pointId
+    );
   };
 }

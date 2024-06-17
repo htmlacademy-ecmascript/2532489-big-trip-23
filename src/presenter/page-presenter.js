@@ -2,9 +2,10 @@ import PointsListView from "../view/points-list-view";
 import OffersModel from "../model/offers-model";
 import SortListView from "../view/sort-list-view";
 import ListEmptyView from "../view/list-empty-view";
+import LoadingView from "../view/loading-view";
 import {remove, render, RenderPosition} from "../framework/render";
 import PointPresenter from "./point-presenter";
-import {FilterType, PointMode, SortType, UpdateType, UserAction} from "../const";
+import {FilterType, SortType, UpdateType, UserAction} from "../const";
 import {filter} from "../utils/filter";
 import {sortByDay, sortByName, sortByPrice} from "../utils/sort";
 import DestinationsModel from "../model/destinations-model";
@@ -14,6 +15,7 @@ export default class PagePresenter {
   #pointsModel = null;
   #filtersModel = null;
   #destinationWrapper = new PointsListView();
+  #loadingComponent = new LoadingView();
   #offersModel = new OffersModel();
   #destinationsModel = new DestinationsModel();
   #sortComponent = null;
@@ -24,6 +26,7 @@ export default class PagePresenter {
   #currentSortType = SortType.DAY;
   #filterType = FilterType.EVERYTHING;
   #newPointPresenter = null;
+  #isLoading = true;
 
   constructor({mainContainer, pointsModel, filtersModel, onNewPointFormClose}) {
     this.#mainContainer = mainContainer;
@@ -60,23 +63,33 @@ export default class PagePresenter {
 
     return pointsFilters;
   }
-  init(){
-    this.#destinations = [...this.#destinationsModel.destinationsList];
-    this.#offers = [...this.#offersModel.offersList];
+  async init(){
+    this.#offers = await this.#offersModel.getOffers();
+    this.#destinations = await this.#destinationsModel.getDestinations();
 
+    this.#renderSortMenu();
     this.#renderPage();
   }
 
   #renderPage(){
     render(this.#destinationWrapper, this.#mainContainer);
 
+    if (this.#isLoading) {
+      this.#renderLoading();
+      return;
+    }
+
     if(this.pointsList.length === 0){
       this.#currentSortType = SortType.DAY;
       this.#renderEmptyList();
     }
 
-    this.#renderSortMenu();
+    // this.#renderSortMenu();
     this.#renderPointsList();
+  }
+
+  #renderLoading() {
+    render(this.#loadingComponent, this.#mainContainer);
   }
 
   #renderEmptyList(){
@@ -96,13 +109,13 @@ export default class PagePresenter {
   #renderPointsList = () => {
     this.pointsList.forEach(point => this.#renderDestinationsItem(point, this.#offers, this.#destinations))
   }
-  #renderDestinationsItem(point, offers, destinations){
+  #renderDestinationsItem(point, offers){
     const destinationPresenter = new PointPresenter({
       destinationWrapper: this.#destinationWrapper.element,
       onModeChange: this.#handleModeChange,
       onDataChange: this.#handleViewAction
     })
-    destinationPresenter.init(point, offers, destinations);
+    destinationPresenter.init(point, offers, this.#destinations);
     this.#pointsCollection.set(point.id, destinationPresenter)
   }
 
@@ -132,7 +145,7 @@ export default class PagePresenter {
         this.#pointsModel.updatePoint(updateType, updateData);
         break;
       case UserAction.ADD_POINT:
-        this.#pointsModel.updatePoint(updateType, updateData);
+        this.#pointsModel.addPoint(updateType, updateData);
         break;
       case UserAction.DELETE_POINT:
         this.#pointsModel.deletePoint(updateType, updateData);
@@ -152,6 +165,11 @@ export default class PagePresenter {
         this.#clearPointsList();
         this.#renderPage();
         break;
+      case UpdateType.INIT:
+        this.#isLoading = false;
+        remove(this.#loadingComponent);
+        this.#renderPage();
+        break;
     }
   }
 
@@ -159,7 +177,8 @@ export default class PagePresenter {
     this.#pointsCollection.forEach((point) => point.destroy());
     this.#pointsCollection.clear();
 
-    remove(this.#sortComponent);
+    // remove(this.#sortComponent);
+    remove(this.#loadingComponent);
 
     if (this.#emptyListComponent) {
       remove(this.#emptyListComponent);

@@ -4,11 +4,14 @@ import {FiltersModel} from "./model/filters-model";
 import FilterPresenter from "./presenter/filter-presenter";
 import NewPointButton from "./view/new-point-button";
 import {render} from "./framework/render";
-const pointsModel = new PointsModel();
+import PointsApiService from "./points-api-service";
+import OffersModel from "./model/offers-model";
 const filtersModel = new FiltersModel();
 const siteBody = document.querySelector('.page-body');
 const siteMainElement = siteBody.querySelector('.trip-events');
 const siteHeaderElement = siteBody.querySelector('.trip-main');
+
+const pointsModel = new PointsModel();
 
 const pagePresenter = new PagePresenter({
   mainContainer: siteMainElement,
@@ -36,6 +39,7 @@ function handleNewPointFormClose(){
 
 render(newPointButton, siteHeaderElement);
 
+pointsModel.init();
 pagePresenter.init();
 filterPresenter.init();
 

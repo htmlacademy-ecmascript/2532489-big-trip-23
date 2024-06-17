@@ -9,7 +9,7 @@ const createDestinationItem = (pointData, allOffers) => {
 
   const {
     type,
-    destination,
+    destinationName,
     base_price,
     date_from,
     date_to,
@@ -20,7 +20,7 @@ const createDestinationItem = (pointData, allOffers) => {
   const pointDate = createPointDate(date_from);
   const startTime = createTimeFormat(date_from);
   const endTime = createTimeFormat(date_to);
-  const option = `${type} ${destination}`;
+  const option = `${type} ${destinationName}`;
   const timePeriod = createDurationPeriod(date_from, date_to);
   const isFavorite = is_favorite ? '--active' : '';
 

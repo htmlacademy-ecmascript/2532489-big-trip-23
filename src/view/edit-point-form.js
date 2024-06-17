@@ -6,11 +6,12 @@ import 'flatpickr/dist/flatpickr.min.css';
 const DEFAULT_FORM = {
   type: 'flight',
   offers: [],
-  destination: 'Seoul',
+  destinationName: '',
+  destination: null,
   description: '',
   date_from: new Date(),
   date_to: new Date(),
-  base_price: 0,
+  base_price: 1,
   is_favorite: false,
   pictures: [],
 }
@@ -35,12 +36,21 @@ const renderTypeSelect = (type) => {
               </div>
           </div>`
 }
-const createEditForm = (formData, allOffers, allDestinations, newForm) => {
+const createEditForm = (formData, allOffers, allDestinations, newForm, isDateValid) => {
 
-  const { id, currentType, currentDestination, base_price, date_from, date_to } = formData;
+  const {
+    id,
+    currentType,
+    base_price,
+    date_from,
+    date_to,
+    description,
+    pictures,
+    destinationName,
+    offers
+  } = formData;
+
   const offersByType = allOffers && allOffers.find(item => item.type === currentType);
-  const destinationByName = allDestinations &&
-    allDestinations.find(item => item.name.toLowerCase() === currentDestination.toLowerCase());
 
   return `<li class="trip-events__item">
                 <form class="event event--edit" action="#" method="post">
@@ -52,10 +62,10 @@ const createEditForm = (formData, allOffers, allDestinations, newForm) => {
                                    id="event-destination-1"
                                    type="text"
                                    name="event-destination"
-                                   value="${destinationByName && destinationByName.name}"
+                                   value="${destinationName ? destinationName : allDestinations[0].name}"
                                    list="destination-list-1">
                             <datalist id="destination-list-1">
-                              ${allDestinations && allDestinations.map(item => {
+                              ${allDestinations.map(item => {
                                       return`<option value="${item.name}">${item.name}</option>`
                                   })}
                             </datalist>
@@ -89,7 +99,7 @@ const createEditForm = (formData, allOffers, allDestinations, newForm) => {
                                  value="${base_price}">
                         </div>
 
-                        <button class="event__save-btn  btn  btn--blue" type="button">Save</button>
+                        <button class="event__save-btn  btn  btn--blue" type="button" ${!isDateValid && "disabled"}>Save</button>
                         <button class="event__reset-btn"
                                 type="button"
                                 data-current-id="${newForm ? '' : id}">${newForm ? 'Cancel' : 'Delete'}</button>
@@ -109,7 +119,7 @@ const createEditForm = (formData, allOffers, allDestinations, newForm) => {
                                               id="event-${offer.title}-1"
                                               type="checkbox"
                                               name="event-${offer.title}"
-                                              ${formData.offers.includes(offer.id) ? 'checked' : ''}>
+                                              ${offers.includes(offer.id) ? 'checked' : ''}>
                                       <label class="event__offer-label" data-current-offer="${offer.id}"
                                              for="event-${offer.title}-1">
                                         <span class="event__offer-title" data-current-offer="${offer.id}">${offer.title}</span>
@@ -123,11 +133,11 @@ const createEditForm = (formData, allOffers, allDestinations, newForm) => {
                         <section class="event__section  event__section--destination">
                           <h3 class="event__section-title  event__section-title--destination">Destination</h3>
 
-                          <p class="event__destination-description">${destinationByName && destinationByName.description}</p>
+                          <p class="event__destination-description">${description}</p>
 
                           <div class="event__photos-container">
                             <div class="event__photos-tape">
-                               ${destinationByName && destinationByName.pictures.map(item => {
+                               ${pictures.map(item => {
                                     return `<img class="event__photo" src="${item.src}" alt="${item.description}">`
                                   })}
                             </div>
@@ -141,25 +151,32 @@ export default class EditPointForm extends AbstractStatefulView {
   #allOffers;
   #allDestinations;
   #onSubmitForm;
+  #handleToggle;
   #datepicker;
   #rejectHandler;
   #isNewForm;
   #currentPrice;
   #storePrice;
-  constructor({formData = DEFAULT_FORM, allOffers, allDestinations, onSubmitForm, onRejectForm, newForm}) {
+  #isDateValid;
+  constructor({formData = DEFAULT_FORM, allOffers, allDestinations, onSubmitForm, onRejectForm, newForm, onToggleForm}) {
     super();
-    this._setState(EditPointForm.parseStoreToState(formData));
+    this._setState(EditPointForm.parseStoreToState({
+      ...formData,
+      destination: this._state.destination ? this._state.destination : allDestinations[0].id
+    }));
     this.#allOffers = allOffers;
     this.#allDestinations = allDestinations;
     this.#onSubmitForm = onSubmitForm;
     this.#rejectHandler = onRejectForm;
     this.#storePrice = formData.base_price;
     this.#isNewForm = newForm;
+    this.#handleToggle = onToggleForm;
+    this.#isDateValid = new Date(this._state.date_from) < new Date(this._state.date_to) && -1;
     this._restoreHandlers();
   }
 
   get template() {
-    return createEditForm(this._state, this.#allOffers, this.#allDestinations, this.#isNewForm);
+    return createEditForm(this._state, this.#allOffers, this.#allDestinations, this.#isNewForm, this.#isDateValid);
   }
 
   removeElement() {
@@ -179,8 +196,13 @@ export default class EditPointForm extends AbstractStatefulView {
     e.preventDefault();
     this.#onSubmitForm(EditPointForm.parseStateToStore({
       ...this._state,
-      base_price: price
+      base_price: price,
     }));
+  }
+
+  #toggleActiveForm = (e) => {
+    e.preventDefault();
+    this.#handleToggle()
   }
 
   #setStartDatepicker(){
@@ -193,6 +215,7 @@ export default class EditPointForm extends AbstractStatefulView {
         onChange: (d) => this.#onChangeStartDate(d)
       }
     )
+    this.#validateDate();
   }
 
   #setEndDatepicker(){
@@ -202,9 +225,11 @@ export default class EditPointForm extends AbstractStatefulView {
         dateFormat: "d/m/Y H:i",
         enableTime: true,
         defaultDate: this._state.date_to,
+        minDate: new Date(60 * 60 * 1000),
         onChange: (d) => this.#onChangeEndDate(d)
       }
     )
+    this.#validateDate();
   }
 
   #onChangeStartDate([date]){
@@ -212,27 +237,29 @@ export default class EditPointForm extends AbstractStatefulView {
   }
 
   #onChangeEndDate([date]){
-    console.log(date)
-    this.updateElement({date_to: date, base_price: 777})
+    this.updateElement({date_to: date})
   }
 
   static parseStoreToState = (storeData) => {
     return {
       ...storeData,
       currentType: storeData.type,
-      currentDestination: storeData.destination,
-      new_date: storeData.date_to
+      new_date: storeData.date_to,
+      isSaving: false,
+      isUnsaved: false,
+      isDeleting: false
     }
   }
 
   static parseStateToStore = (state) => {
     const store = {...state};
     store.type = state.currentType;
-    store.destination = state.currentDestination;
     store.date_from = state.date_from;
     store.date_to = state.date_to;
     delete store.currentType;
-    delete store.currentDestination;
+    delete store.isSaving;
+    delete store.isUnsaved;
+    delete store.isDeleting;
 
     return store;
   }
@@ -240,12 +267,19 @@ export default class EditPointForm extends AbstractStatefulView {
   #setCurrentDestination = (e) => {
     e.preventDefault();
     let checkedDestination = this.#allDestinations.find(item => item.name === e.target.value);
-    checkedDestination && this.updateElement({currentDestination: checkedDestination.name})
+    checkedDestination && this.updateElement({
+      destinationName: checkedDestination.name,
+      destination: checkedDestination.id
+    });
   }
 
   #validateNumber = (e) => {
     const idValidValue = e.target.value.replace(/[^0-9]/g, '').replace(/^0+/, '');;
     e.target.value = idValidValue;
+  }
+
+  #validateDate = () => {
+    this.#isDateValid = new Date(this._state.date_from) < new Date(this._state.date_to) && -1
   }
 
   #setCurrentPrice = (e) => {
@@ -265,7 +299,7 @@ export default class EditPointForm extends AbstractStatefulView {
   }
 
   #clickOfferOption = (e) => {
-    let checkedOffer = Number(e.target.dataset.currentOffer);
+    let checkedOffer = e.target.dataset.currentOffer;
     let idx = this._state.offers.findIndex(offer => offer === checkedOffer);
     if(idx === -1){
       this.updateElement({offers: [...this._state.offers, checkedOffer]});
@@ -286,7 +320,7 @@ export default class EditPointForm extends AbstractStatefulView {
 
   _restoreHandlers() {
     let el = !this.#isNewForm && this.element.querySelector('.event__rollup-btn');
-    el && el.addEventListener('click', this.#clickSubmitHandler);
+    el && el.addEventListener('click', this.#toggleActiveForm);
     this.element.querySelector('.event__save-btn')
       .addEventListener('click', this.#clickSubmitHandler);
     this.element.querySelector('.event__input--destination')

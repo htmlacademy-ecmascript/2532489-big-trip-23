@@ -22,8 +22,8 @@ export default class PointPresenter {
   }
 
   init(point, offers, destinations){
-    this.#point = point;
     this.#destinations = destinations;
+    this.#point = point;
     this.#offers = offers;
 
     const prevTaskComponent = this.#pointItem;
@@ -42,7 +42,8 @@ export default class PointPresenter {
       allDestinations: this.#destinations,
       onSubmitForm: this.#handleFormSubmit,
       onRejectForm: this.#handlePointRemove,
-      newForm: false
+      newForm: false,
+      onToggleForm: this.#replaceFormToCard
     })
 
     if (prevTaskComponent === null || prevTaskEditComponent === null){
@@ -80,13 +81,13 @@ export default class PointPresenter {
     );
   };
 
-  #replaceCardToForm() {
+  #replaceCardToForm = () => {
     replace(this.#pointItemEdited, this.#pointItem);
     document.addEventListener('keydown', this.#escKeyDownHandler);
     this.#handleModeChange();
     this.#mode = PointMode.EDITING;
   }
-  #replaceFormToCard() {
+  #replaceFormToCard = () => {
     replace(this.#pointItem, this.#pointItemEdited);
     document.removeEventListener('keydown', this.#escKeyDownHandler);
     this.#mode = PointMode.DEFAULT;

@@ -1,5 +1,4 @@
 import EditPointForm from "../view/edit-point-form";
-import {nanoid} from 'nanoid';
 import {UserAction, UpdateType} from "../const";
 import {remove, render, RenderPosition} from "../framework/render";
 
@@ -52,7 +51,7 @@ export default class NewPointPresenter {
     this.#handleDataChange(
       UserAction.ADD_POINT,
       UpdateType.MINOR,
-      {id: nanoid(), ...point},
+      point,
     );
     this.destroy();
   };
